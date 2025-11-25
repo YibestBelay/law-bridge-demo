@@ -210,7 +210,7 @@ export default function ChatPage() {
           onDismissBanner={() => {}}
         />
 
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col overflow-y-auto">
           {messages.length === 0 ? (
             <WelcomeState onQuestionClick={handleSuggestedQuestion} />
           ) : (

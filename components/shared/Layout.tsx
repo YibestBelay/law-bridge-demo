@@ -1,6 +1,6 @@
 'use client'
 
-import Navigation from '@/components/shared/Navigation'
+import Navigation from './Navigation'
 
 interface LayoutProps {
   children: React.ReactNode

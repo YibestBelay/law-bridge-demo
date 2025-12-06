@@ -1,6 +1,6 @@
 'use client'
 
-import Layout from '@/components/shared/layout'
+import Layout from '@/components/shared/Layout'
 import Hero from '@/components/Hero'
 import ValueProposition from '@/components/ValueProposition'
 import HowItWorks from '@/components/HowItWorks'

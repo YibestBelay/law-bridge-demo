@@ -1,6 +1,7 @@
 'use client'
 
 import { MessageCircle, Search } from 'lucide-react'
+import { openAuthModal } from '@/lib/authModalEvents'
 
 export default function Hero() {
   return (
@@ -21,14 +22,20 @@ export default function Hero() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12">
-              <a href="/chat" className="bg-green hover:bg-green/90 text-white px-8 py-4 rounded-lg text-lg font-semibold flex items-center justify-center gap-2 shadow-lg transition-all">
+              <button
+                onClick={() => openAuthModal('signin')}
+                className="bg-green hover:bg-green/90 text-white px-8 py-4 rounded-lg text-lg font-semibold flex items-center justify-center gap-2 shadow-lg transition-all"
+              >
                 <MessageCircle size={24} />
                 Try AI Assistant Free
-              </a>
-              <a href="/lawyers" className="bg-gold hover:bg-gold/90 text-navy px-8 py-4 rounded-lg text-lg font-semibold flex items-center justify-center gap-2 shadow-lg transition-all">
+              </button>
+              <button
+                onClick={() => openAuthModal('signup')}
+                className="bg-gold hover:bg-gold/90 text-navy px-8 py-4 rounded-lg text-lg font-semibold flex items-center justify-center gap-2 shadow-lg transition-all"
+              >
                 <Search size={24} />
                 Find a Lawyer
-              </a>
+              </button>
             </div>
 
             {/* Trust Badges */}

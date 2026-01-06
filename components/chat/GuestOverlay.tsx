@@ -1,6 +1,7 @@
 'use client'
 
 import { X } from 'lucide-react'
+import { openAuthModal } from '@/lib/authModalEvents'
 
 interface GuestOverlayProps {
   onClose: () => void
@@ -33,13 +34,19 @@ export default function GuestOverlay({ onClose, onSignIn }: GuestOverlayProps) {
 
         <div className="space-y-3">
           <button
-            onClick={onSignIn}
+            onClick={() => {
+              openAuthModal('signin')
+              onSignIn()
+            }}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
           >
             Sign In
           </button>
           <button
-            onClick={onSignIn}
+            onClick={() => {
+              openAuthModal('signup')
+              onSignIn()
+            }}
             className="w-full bg-gray-100 hover:bg-gray-200 text-navy px-6 py-3 rounded-lg font-semibold transition-colors"
           >
             Create Account

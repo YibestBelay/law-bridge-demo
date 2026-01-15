@@ -76,4 +76,3 @@ export default function AvailabilitySection({ availability }: AvailabilitySectio
     </section>
   )
 }
-

@@ -162,4 +162,3 @@ export default function BookingSidebar({ lawyer, similarLawyers }: BookingSideba
     </>
   )
 }
-

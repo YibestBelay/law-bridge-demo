@@ -31,4 +31,3 @@ export default function LanguagesSection({ languages }: LanguagesSectionProps) {
     </section>
   )
 }
-

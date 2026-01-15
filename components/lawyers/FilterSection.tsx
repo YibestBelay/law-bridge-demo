@@ -13,4 +13,3 @@ export default function FilterSection({ title, children }: FilterSectionProps) {
     </div>
   )
 }
-

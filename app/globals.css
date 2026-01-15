@@ -24,6 +24,15 @@ body {
   }
 }
 
+/* Hide scrollbars where applied */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
 /* Typing indicator animation */
 @keyframes bounce {
   0%, 80%, 100% {

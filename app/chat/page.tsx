@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Layout from '../../components/shared/Layout'
+import { openAuthModal } from '@/lib/authModalEvents'
 import ChatSidebar from '@/components/chat/ChatSidebar'
 import ChatHeader from '@/components/chat/ChatHeader'
 import WelcomeState from '@/components/chat/WelcomeState'
@@ -98,6 +99,13 @@ export default function ChatPage() {
   }
 
   const sendMessage = async (content: string) => {
+    // Require auth before starting chat
+    if (isGuest && messages.length === 0) {
+      openAuthModal('signin')
+      setShowGuestOverlay(true)
+      return
+    }
+
     if (isGuest && questionsRemaining <= 0) {
       setShowGuestOverlay(true)
       // Add system message

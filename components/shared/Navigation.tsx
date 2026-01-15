@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu, X, MessageCircle, Search, User, LogOut } from 'lucide-react'
+import { openAuthModal } from '@/lib/authModalEvents'
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
@@ -64,6 +65,12 @@ export default function Navigation() {
               <Link
                 key={link.href}
                 href={link.href}
+                onClick={(e) => {
+                  if (link.href === '/chat' || link.href === '/lawyers') {
+                    e.preventDefault()
+                    openAuthModal(link.href === '/chat' ? 'signin' : 'signup')
+                  }
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive(link.href)
                     ? 'bg-blue-50 text-navy font-semibold'
@@ -100,19 +107,19 @@ export default function Navigation() {
               </>
             ) : (
               <>
-                <Link
-                  href="/chat"
+                <button
+                  onClick={() => openAuthModal('signin')}
                   className="px-4 py-2 bg-green hover:bg-green/90 text-white rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors"
                 >
                   <MessageCircle size={18} />
                   <span>Try AI Free</span>
-                </Link>
-                <Link
-                  href="/lawyers"
+                </button>
+                <button
+                  onClick={() => openAuthModal('signup')}
                   className="px-4 py-2 bg-gold hover:bg-gold/90 text-navy rounded-lg text-sm font-semibold transition-colors"
                 >
                   Find Lawyer
-                </Link>
+                </button>
               </>
             )}
           </div>
@@ -148,7 +155,13 @@ export default function Navigation() {
               <Link
                 key={link.href}
                 href={link.href}
-                onClick={() => setIsOpen(false)}
+                onClick={(e) => {
+                  setIsOpen(false)
+                  if (link.href === '/chat' || link.href === '/lawyers') {
+                    e.preventDefault()
+                    openAuthModal(link.href === '/chat' ? 'signin' : 'signup')
+                  }
+                }}
                 className={`block px-4 py-3 rounded-lg text-base font-medium transition-colors ${
                   isActive(link.href)
                     ? 'bg-blue-50 text-navy font-semibold'
@@ -160,20 +173,33 @@ export default function Navigation() {
             ))}
             {!(pathname.startsWith('/dashboard') || pathname.startsWith('/lawyer-dashboard')) && (
               <>
-                <Link
-                  href="/chat"
-                  onClick={() => setIsOpen(false)}
-                  className="block px-4 py-3 bg-green text-white rounded-lg text-base font-semibold text-center"
+                <button
+                  onClick={() => {
+                    setIsOpen(false)
+                    openAuthModal('signin')
+                  }}
+                  className="w-full px-4 py-3 border border-gray-200 text-gray-800 rounded-lg text-base font-semibold text-center hover:bg-gray-50"
+                >
+                  Sign In / Register
+                </button>
+                <button
+                  onClick={() => {
+                    setIsOpen(false)
+                    openAuthModal('signin')
+                  }}
+                  className="w-full px-4 py-3 bg-green text-white rounded-lg text-base font-semibold text-center"
                 >
                   Try AI Assistant Free
-                </Link>
-                <Link
-                  href="/lawyers"
-                  onClick={() => setIsOpen(false)}
-                  className="block px-4 py-3 bg-gold text-navy rounded-lg text-base font-semibold text-center"
+                </button>
+                <button
+                  onClick={() => {
+                    setIsOpen(false)
+                    openAuthModal('signup')
+                  }}
+                  className="w-full px-4 py-3 bg-gold text-navy rounded-lg text-base font-semibold text-center"
                 >
                   Find a Lawyer
-                </Link>
+                </button>
               </>
             )}
             {(pathname.startsWith('/dashboard') || pathname.startsWith('/lawyer-dashboard')) && (

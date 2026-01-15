@@ -12,7 +12,10 @@ import {
   ArrowRight,
   Briefcase,
   UserCircle,
+  Loader2,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { closeAuthModal } from "@/lib/authModalEvents";
 
 type UserRole = "user" | "lawyer";
 export type AuthMode = "signin" | "signup";
@@ -34,10 +37,14 @@ interface LawBridgeAuthProps {
 export default function LawBridgeAuth({
   initialMode = "signin",
 }: LawBridgeAuthProps) {
+  const { signIn, signUp } = useAuth();
   const [isLogin, setIsLogin] = useState(initialMode === "signin");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>("user");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     email: "",
@@ -56,13 +63,131 @@ export default function LawBridgeAuth({
     }));
   };
 
-  const handleSubmit = () => {
-    console.log("Form submitted:", {
-      ...formData,
-      role: userRole,
-      mode: isLogin ? "login" : "register",
-    });
-    alert(`${isLogin ? "Login" : `Registration as ${userRole}`} successful!`);
+  const validateForm = (): boolean => {
+    setError(null);
+
+    if (isLogin) {
+      // Sign in validation
+      if (!formData.email || !formData.password) {
+        setError("Email and password are required");
+        return false;
+      }
+    } else {
+      // Sign up validation
+      if (
+        !formData.fullName ||
+        !formData.email ||
+        !formData.phone ||
+        !formData.password
+      ) {
+        setError("All fields are required");
+        return false;
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match");
+        return false;
+      }
+
+      if (formData.password.length < 6) {
+        setError("Password must be at least 6 characters long");
+        return false;
+      }
+
+      if (!formData.agreeTerms) {
+        setError("You must agree to the Terms & Conditions");
+        return false;
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setError("Please enter a valid email address");
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      window.location.href = "/api/auth/google";
+    } catch (err) {
+      setError("Failed to initiate Google sign in. Please try again.");
+      setLoading(false);
+      console.error("Google sign in error:", err);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      if (isLogin) {
+        // Sign in
+        const result = await signIn(formData.email, formData.password);
+
+        if (result.error) {
+          setError(result.error);
+        } else {
+          setSuccess("Signed in successfully!");
+          // Close modal after a short delay
+          setTimeout(() => {
+            closeAuthModal();
+            // Reload to update auth state
+            window.location.reload();
+          }, 1500);
+        }
+      } else {
+        // Sign up
+        const result = await signUp(
+          formData.email,
+          formData.password,
+          formData.fullName,
+          formData.phone,
+          userRole
+        );
+
+        if (result.error) {
+          setError(result.error);
+        } else {
+          setSuccess(
+            "Account created successfully! Please check your email inbox (and spam folder) for a verification link. You must verify your email before you can sign in."
+          );
+          // Reset form
+          setFormData({
+            fullName: "",
+            email: "",
+            phone: "",
+            password: "",
+            confirmPassword: "",
+            agreeTerms: false,
+            rememberMe: false,
+          });
+          // Switch to sign in after a delay
+          setTimeout(() => {
+            setIsLogin(true);
+            setSuccess(null);
+          }, 5000);
+        }
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error("Auth error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -264,6 +389,7 @@ export default function LawBridgeAuth({
           {/* Social Login */}
           <button
             type="button"
+            onClick={handleGoogleSignIn}
             className="w-full flex items-center justify-center gap-3 border-2 border-gray-200 rounded-lg py-3 px-4 font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all mb-6"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -298,8 +424,54 @@ export default function LawBridgeAuth({
             </div>
           </div>
 
+          {/* Error/Success Messages */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+          {success && (
+            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="w-5 h-5 text-green-600 mt-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-green-800 font-medium">
+                    {success}
+                  </p>
+                  {!isLogin && (
+                    <p className="text-xs text-green-700 mt-2">
+                      Didn't receive the email? Check your spam folder or{" "}
+                      <button
+                        type="button"
+                        onClick={() => setIsLogin(true)}
+                        className="underline font-semibold"
+                      >
+                        try signing in
+                      </button>{" "}
+                      after verification.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Form Fields */}
-          <div className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Full Name - Only for Register */}
             {!isLogin && (
               <div>
@@ -473,16 +645,27 @@ export default function LawBridgeAuth({
 
             {/* Submit Button */}
             <button
-              type="button"
-              onClick={handleSubmit}
-              className="w-full font-bold py-3.5 px-4 rounded-lg transform hover:scale-[1.02] transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+              type="submit"
+              disabled={loading}
+              className="w-full font-bold py-3.5 px-4 rounded-lg transform hover:scale-[1.02] transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-              {isLogin
-                ? "Sign In"
-                : `Create ${userRole === "lawyer" ? "Lawyer" : "User"} Account`}
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  {isLogin ? "Signing In..." : "Creating Account..."}
+                </>
+              ) : (
+                <>
+                  {isLogin
+                    ? "Sign In"
+                    : `Create ${
+                        userRole === "lawyer" ? "Lawyer" : "User"
+                      } Account`}
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
             </button>
-          </div>
+          </form>
 
           {/* Switch Form Type */}
           <p className="text-center text-sm text-gray-600 mt-6">

@@ -9,13 +9,20 @@ export default function AuthModalContainer() {
   const [mode, setMode] = useState<AuthModalMode>('signin')
 
   useEffect(() => {
-    const handler = (event: Event) => {
+    const openHandler = (event: Event) => {
       const custom = event as CustomEvent<AuthModalMode>
       setMode(custom.detail || 'signin')
       setOpen(true)
     }
-    window.addEventListener('lawbridge-auth-open', handler)
-    return () => window.removeEventListener('lawbridge-auth-open', handler)
+    const closeHandler = () => {
+      setOpen(false)
+    }
+    window.addEventListener('lawbridge-auth-open', openHandler)
+    window.addEventListener('lawbridge-auth-close', closeHandler)
+    return () => {
+      window.removeEventListener('lawbridge-auth-open', openHandler)
+      window.removeEventListener('lawbridge-auth-close', closeHandler)
+    }
   }, [])
 
   return <AuthModal open={open} mode={mode} onClose={() => setOpen(false)} />

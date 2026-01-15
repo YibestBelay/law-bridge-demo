@@ -31,4 +31,3 @@ export default function LoadingState({ viewMode }: LoadingStateProps) {
     </div>
   )
 }
-

@@ -226,4 +226,3 @@ export default function LawyerCard({ lawyer, viewMode }: LawyerCardProps) {
     </div>
   )
 }
-

@@ -53,4 +53,3 @@ export default function AboutSection({ lawyer }: AboutSectionProps) {
     </section>
   )
 }
-

@@ -56,4 +56,3 @@ export default function EducationSection({ education, licenseNumber }: Education
     </section>
   )
 }
-

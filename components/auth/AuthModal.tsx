@@ -40,7 +40,7 @@ export default function AuthModal({ open, mode, onClose }: AuthModalProps) {
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-lg text-gray-100 hover:bg-black/40 transition-colors z-[110]"
+          className="absolute bg-blue-500 top-4 right-4 p-2 rounded-lg text-gray-100 hover:bg-black/40 transition-colors z-[110]"
           aria-label="Close authentication"
         >
           <X size={20} />

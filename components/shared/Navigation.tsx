@@ -65,12 +65,12 @@ export default function Navigation() {
               <Link
                 key={link.href}
                 href={link.href}
-                onClick={(e) => {
-                  if (link.href === '/chat' || link.href === '/lawyers') {
-                    e.preventDefault()
-                    openAuthModal(link.href === '/chat' ? 'signin' : 'signup')
-                  }
-                }}
+                // onClick={(e) => {
+                //   if (link.href === '/chat' || link.href === '/lawyers') {
+                //     e.preventDefault()
+                //     openAuthModal(link.href === '/chat' ? 'signin' : 'signup')
+                //   }
+                // }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive(link.href)
                     ? 'bg-blue-50 text-navy font-semibold'

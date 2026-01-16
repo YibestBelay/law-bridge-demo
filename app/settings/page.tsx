@@ -84,6 +84,6 @@ export default function SettingsPage() {
         onSectionChange={setActiveSection}
       />
     </div>
+    </Layout>
   )
 }
-

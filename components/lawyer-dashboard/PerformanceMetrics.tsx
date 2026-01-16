@@ -109,4 +109,3 @@ export default function PerformanceMetrics({ metrics }: PerformanceMetricsProps)
     </div>
   )
 }
-

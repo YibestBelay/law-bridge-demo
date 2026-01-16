@@ -29,4 +29,3 @@ export default function SpecializationsSection({ areasOfPractice }: Specializati
     </section>
   )
 }
-

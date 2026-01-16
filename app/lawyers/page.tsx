@@ -230,12 +230,14 @@ const specializations = [
 ];
 
 export default function LawyersPage() {
-  const [lawyers] = useState<Lawyer[]>(mockLawyers);
-  const [loading, setLoading] = useState(false);
+  const [lawyers, setLawyers] = useState<Lawyer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(9);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
+  const [error, setError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<FilterState>({
     search: "",
@@ -249,57 +251,78 @@ export default function LawyersPage() {
     badges: [],
   });
 
-  const filteredLawyers = useMemo(() => {
-    return lawyers.filter((lawyer) => {
-      // Search filter
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        if (
-          !lawyer.name.toLowerCase().includes(searchLower) &&
-          !lawyer.specialization.toLowerCase().includes(searchLower) &&
-          !lawyer.location.toLowerCase().includes(searchLower)
-        ) {
-          return false;
+  // Fetch lawyers from API
+  useEffect(() => {
+    const fetchLawyers = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: itemsPerPage.toString(),
+        });
+
+        if (filters.search) params.append("search", filters.search);
+        if (filters.specializations.length > 0)
+          params.append("specializations", filters.specializations.join(","));
+        if (filters.location !== "All locations")
+          params.append("location", filters.location);
+        if (filters.priceMin > 500)
+          params.append("priceMin", filters.priceMin.toString());
+        if (filters.priceMax < 5000)
+          params.append("priceMax", filters.priceMax.toString());
+        if (filters.availability !== "any")
+          params.append("availability", filters.availability);
+        if (filters.rating > 0)
+          params.append("rating", filters.rating.toString());
+        if (filters.experience.length > 0)
+          params.append("experience", filters.experience.join(","));
+        if (filters.badges.length > 0)
+          params.append("badges", filters.badges.join(","));
+
+        const response = await fetch(`/api/lawyers?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch lawyers");
         }
-      }
 
-      // Specialization filter
-      if (
-        filters.specializations.length > 0 &&
-        !filters.specializations.includes(lawyer.specialization)
-      ) {
-        return false;
+        const data = await response.json();
+        setLawyers(data.lawyers || []);
+        setTotalPages(data.pagination?.totalPages || 1);
+      } catch (err) {
+        console.error("Error fetching lawyers:", err);
+        setError("Failed to load lawyers. Please try again.");
+        // Fallback to mock data for development
+        setLawyers(mockLawyers);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // Location filter
-      if (
-        filters.location !== "All locations" &&
-        lawyer.location !== filters.location
-      ) {
-        return false;
-      }
+    fetchLawyers();
+  }, [
+    currentPage,
+    itemsPerPage,
+    filters.search,
+    filters.specializations,
+    filters.location,
+    filters.priceMin,
+    filters.priceMax,
+    filters.availability,
+    filters.rating,
+    filters.experience,
+    filters.badges,
+  ]);
 
-      // Price filter
-      if (lawyer.price < filters.priceMin || lawyer.price > filters.priceMax) {
-        return false;
-      }
+  // Filtering is now done on the server side via API
+  // We only need to handle client-side filtering for badges and experience
+  // that might not be fully supported by the API yet
+  const filteredLawyers = useMemo(() => {
+    let result = lawyers;
 
-      // Availability filter
-      if (
-        filters.availability !== "any" &&
-        lawyer.available !== filters.availability
-      ) {
-        return false;
-      }
-
-      // Rating filter
-      if (filters.rating > 0 && lawyer.rating < filters.rating) {
-        return false;
-      }
-
-      // Experience filter
-      if (filters.experience.length > 0) {
-        const matchesExperience = filters.experience.some((exp) => {
+    // Experience filter (if not handled by API)
+    if (filters.experience.length > 0) {
+      result = result.filter((lawyer) => {
+        return filters.experience.some((exp) => {
           if (exp === "0-2")
             return lawyer.experience >= 0 && lawyer.experience <= 2;
           if (exp === "3-5")
@@ -309,31 +332,27 @@ export default function LawyersPage() {
           if (exp === "10+") return lawyer.experience > 10;
           return false;
         });
-        if (!matchesExperience) return false;
-      }
+      });
+    }
 
-      // Badges filter
-      if (filters.badges.length > 0) {
-        const matchesBadge = filters.badges.some((badge) => {
+    // Badges filter (if not handled by API)
+    if (filters.badges.length > 0) {
+      result = result.filter((lawyer) => {
+        return filters.badges.some((badge) => {
           if (badge === "verified") return lawyer.verified;
           if (badge === "topRated") return lawyer.topRated;
           if (badge === "fastResponse") return lawyer.fastResponse;
           if (badge === "risingStar") return lawyer.risingStar;
           return false;
         });
-        if (!matchesBadge) return false;
-      }
+      });
+    }
 
-      return true;
-    });
-  }, [lawyers, filters]);
+    return result;
+  }, [lawyers, filters.experience, filters.badges]);
 
-  const totalPages = Math.ceil(filteredLawyers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedLawyers = filteredLawyers.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  // Pagination is handled by the API, so we use the lawyers directly
+  const paginatedLawyers = filteredLawyers;
 
   const clearFilters = () => {
     setFilters({
@@ -412,6 +431,16 @@ export default function LawyersPage() {
 
               {loading ? (
                 <LoadingState viewMode={viewMode} />
+              ) : error ? (
+                <div className="text-center py-12">
+                  <p className="text-red-600 mb-4">{error}</p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="text-blue-600 hover:underline"
+                  >
+                    Retry
+                  </button>
+                </div>
               ) : paginatedLawyers.length === 0 ? (
                 <EmptyState onClearFilters={clearFilters} />
               ) : (

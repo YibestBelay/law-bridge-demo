@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { ArrowLeft, Share2, Bookmark } from "lucide-react";
 import Layout from "@/components/shared/Layout";
 import ProfileHeader from "@/components/lawyers/profile/ProfileHeader";
@@ -15,7 +16,7 @@ import AvailabilitySection from "@/components/lawyers/profile/AvailabilitySectio
 import ReviewsSection from "@/components/lawyers/profile/ReviewsSection";
 import BookingSidebar from "@/components/lawyers/profile/BookingSidebar";
 
-// Mock data - in production, this would come from an API
+// Fallback mock data for development
 const mockLawyer = {
   id: "1",
   name: "Alemayehu Bekele",
@@ -178,7 +179,79 @@ const similarLawyers = [
 ];
 
 export default function LawyerProfilePage() {
+  const params = useParams();
+  const lawyerId = params.id as string;
   const [saved, setSaved] = useState(false);
+  const [lawyer, setLawyer] = useState<any>(mockLawyer);
+  const [reviews, setReviews] = useState(mockReviews);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchLawyer = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`/api/lawyers/${lawyerId}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch lawyer");
+        }
+        const data = await response.json();
+        setLawyer(data);
+        setReviews(data.reviews || mockReviews);
+      } catch (err) {
+        console.error("Error fetching lawyer:", err);
+        setError("Failed to load lawyer profile");
+        // Keep mock data as fallback
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (lawyerId) {
+      fetchLawyer();
+    }
+  }, [lawyerId]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-navy mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading lawyer profile...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error && !lawyer) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <Link
+              href="/lawyers"
+              className="text-blue-600 hover:underline"
+            >
+              Back to Lawyers
+            </Link>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Calculate rating breakdown from reviews
+  const ratingBreakdown = {
+    5: reviews.filter((r: any) => r.rating === 5).length,
+    4: reviews.filter((r: any) => r.rating === 4).length,
+    3: reviews.filter((r: any) => r.rating === 3).length,
+    2: reviews.filter((r: any) => r.rating === 2).length,
+    1: reviews.filter((r: any) => r.rating === 1).length,
+  };
 
   return (
     <Layout>
@@ -200,7 +273,7 @@ export default function LawyerProfilePage() {
         <div className="bg-white border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <ProfileHeader
-              lawyer={mockLawyer}
+              lawyer={lawyer}
               saved={saved}
               onSave={() => setSaved(!saved)}
             />
@@ -210,7 +283,7 @@ export default function LawyerProfilePage() {
         {/* Key Stats */}
         <div className="bg-gray-50 border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <KeyStats lawyer={mockLawyer} />
+            <KeyStats lawyer={lawyer} />
           </div>
         </div>
 
@@ -219,21 +292,21 @@ export default function LawyerProfilePage() {
           <div className="flex gap-8">
             {/* Main Content */}
             <main className="flex-1 lg:w-2/3 space-y-8">
-              <AboutSection lawyer={mockLawyer} />
+              <AboutSection lawyer={lawyer} />
               <SpecializationsSection
-                areasOfPractice={mockLawyer.areasOfPractice}
+                areasOfPractice={lawyer.areasOfPractice || []}
               />
               <EducationSection
-                education={mockLawyer.education}
-                licenseNumber={mockLawyer.licenseNumber}
+                education={lawyer.education || []}
+                licenseNumber={lawyer.licenseNumber || ""}
               />
-              <LanguagesSection languages={mockLawyer.languages} />
-              <CaseExamplesSection cases={mockLawyer.notableCases} />
-              <AvailabilitySection availability={mockLawyer.availability} />
+              <LanguagesSection languages={lawyer.languages || []} />
+              <CaseExamplesSection cases={lawyer.notableCases || []} />
+              <AvailabilitySection availability={lawyer.availability || {}} />
               <ReviewsSection
-                reviews={mockReviews}
+                reviews={reviews}
                 ratingBreakdown={ratingBreakdown}
-                totalReviews={mockLawyer.reviews}
+                totalReviews={lawyer.reviews || 0}
               />
             </main>
 
@@ -241,7 +314,7 @@ export default function LawyerProfilePage() {
             <aside className="hidden lg:block w-1/3">
               <div className="sticky top-4 space-y-6">
                 <BookingSidebar
-                  lawyer={mockLawyer}
+                  lawyer={lawyer}
                   similarLawyers={similarLawyers}
                 />
               </div>

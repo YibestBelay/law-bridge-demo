@@ -161,7 +161,7 @@ export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <Layout showNav={false}>
+    <Layout>
       <div className="flex h-screen bg-gray-50 overflow-hidden">
         {/* Desktop Sidebar */}
         <DashboardSidebar

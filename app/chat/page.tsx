@@ -10,6 +10,9 @@ import ChatMessages from '@/components/chat/ChatMessages'
 import ChatInput from '@/components/chat/ChatInput'
 import GuestOverlay from '@/components/chat/GuestOverlay'
 import MobileChatHistory from '@/components/chat/MobileChatHistory'
+import { createClient } from '@/lib/supabase/client'
+const supabase = createClient()
+import { User } from '@supabase/supabase-js'
 
 interface Message {
   id: string
@@ -27,6 +30,9 @@ interface Chat {
 }
 
 export default function ChatPage() {
+  const [user, setUser] = useState<User | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
+
   const [chats, setChats] = useState<Chat[]>([])
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -35,46 +41,69 @@ export default function ChatPage() {
   const [questionsRemaining, setQuestionsRemaining] = useState(2)
   const [showGuestOverlay, setShowGuestOverlay] = useState(false)
   const [showHistorySheet, setShowHistorySheet] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const activeChat = chats.find(chat => chat.id === activeChatId)
 
+  /* ---------------- AUTH SESSION RESTORE ---------------- */
   useEffect(() => {
-    // Load chat history from localStorage
-    const savedChats = localStorage.getItem('lawbridge-chats')
-    if (savedChats) {
-      const parsed = JSON.parse(savedChats)
-      setChats(parsed.map((chat: any) => ({
-        ...chat,
-        createdAt: new Date(chat.createdAt),
-        updatedAt: new Date(chat.updatedAt),
-        messages: chat.messages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        }))
-      })))
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user)
+      setIsGuest(!data.user)
+      setAuthLoading(false)
+    })
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null)
+        setIsGuest(!session?.user)
+      }
+    )
+
+    return () => {
+      listener.subscription.unsubscribe()
     }
   }, [])
 
+  /* ---------------- LOAD CHAT HISTORY ---------------- */
   useEffect(() => {
-    // Save chats to localStorage
+    const savedChats = localStorage.getItem('lawbridge-chats')
+    if (savedChats) {
+      const parsed = JSON.parse(savedChats)
+      setChats(
+        parsed.map((chat: any) => ({
+          ...chat,
+          createdAt: new Date(chat.createdAt),
+          updatedAt: new Date(chat.updatedAt),
+          messages: chat.messages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp),
+          })),
+        }))
+      )
+    }
+  }, [])
+
+  /* ---------------- SAVE CHAT HISTORY ---------------- */
+  useEffect(() => {
     if (chats.length > 0) {
       localStorage.setItem('lawbridge-chats', JSON.stringify(chats))
     }
   }, [chats])
 
+  /* ---------------- AUTO SCROLL ---------------- */
   useEffect(() => {
-    // Scroll to bottom when new messages arrive
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isTyping])
 
+  /* ---------------- CHAT ACTIONS ---------------- */
   const createNewChat = () => {
     const newChat: Chat = {
       id: Date.now().toString(),
       title: 'New Chat',
       messages: [],
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     }
     setChats([newChat, ...chats])
     setActiveChatId(newChat.id)
@@ -84,9 +113,7 @@ export default function ChatPage() {
   const selectChat = (chatId: string) => {
     setActiveChatId(chatId)
     const chat = chats.find(c => c.id === chatId)
-    if (chat) {
-      setMessages(chat.messages)
-    }
+    if (chat) setMessages(chat.messages)
     setShowHistorySheet(false)
   }
 
@@ -99,7 +126,6 @@ export default function ChatPage() {
   }
 
   const sendMessage = async (content: string) => {
-    // Require auth before starting chat
     if (isGuest && messages.length === 0) {
       openAuthModal('signin')
       setShowGuestOverlay(true)
@@ -108,14 +134,15 @@ export default function ChatPage() {
 
     if (isGuest && questionsRemaining <= 0) {
       setShowGuestOverlay(true)
-      // Add system message
-      const systemMessage: Message = {
-        id: Date.now().toString(),
-        role: 'system',
-        content: "You've reached your question limit. Please sign in to continue",
-        timestamp: new Date()
-      }
-      setMessages([...messages, systemMessage])
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: 'system',
+          content: "You've reached your question limit. Please sign in to continue",
+          timestamp: new Date(),
+        },
+      ])
       return
     }
 
@@ -123,171 +150,131 @@ export default function ChatPage() {
       id: Date.now().toString(),
       role: 'user',
       content,
-      timestamp: new Date()
+      timestamp: new Date(),
     }
 
     const newMessages = [...messages, userMessage]
     setMessages(newMessages)
 
-    // Update or create chat
     if (activeChatId) {
-      const updatedChats = chats.map(chat => {
-        if (chat.id === activeChatId) {
-          const updatedMessages = [...chat.messages, userMessage]
-          return {
-            ...chat,
-            messages: updatedMessages,
-            title: chat.messages.length === 0 ? content.substring(0, 50) : chat.title,
-            updatedAt: new Date()
-          }
-        }
-        return chat
-      })
-      setChats(updatedChats)
+      setChats(chats.map(chat =>
+        chat.id === activeChatId
+          ? {
+              ...chat,
+              messages: [...chat.messages, userMessage],
+              title: chat.messages.length === 0 ? content.slice(0, 50) : chat.title,
+              updatedAt: new Date(),
+            }
+          : chat
+      ))
     } else {
       const newChat: Chat = {
         id: Date.now().toString(),
-        title: content.substring(0, 50),
+        title: content.slice(0, 50),
         messages: [userMessage],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       }
       setChats([newChat, ...chats])
       setActiveChatId(newChat.id)
     }
 
-    // Decrement questions for guests
-    if (isGuest) {
-      setQuestionsRemaining(prev => prev - 1)
-    }
+    if (isGuest) setQuestionsRemaining(q => q - 1)
 
-    // Simulate AI response
     setIsTyping(true)
     setTimeout(() => {
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `This is a sample AI response to your question: "${content}". In a real implementation, this would be generated by the AI legal assistant based on Ethiopian law documents.`,
-        timestamp: new Date()
+        content: `This is a sample AI response to your question: "${content}".`,
+        timestamp: new Date(),
       }
 
-      const finalMessages = [...newMessages, aiMessage]
-      setMessages(finalMessages)
-
-      // Update chat with AI response 
-      const updatedChats = chats.map(chat => {
-        if (chat.id === activeChatId || (activeChatId === null && chat.id === chats[0]?.id)) {
-          return {
-            ...chat,
-            messages: finalMessages,
-            updatedAt: new Date()
-          }
-        }
-        return chat
-      })
-      setChats(updatedChats)
-
+      setMessages(prev => [...prev, aiMessage])
       setIsTyping(false)
     }, 1500)
   }
 
-  const handleSuggestedQuestion = (question: string) => {
-    sendMessage(question)
+  /* ---------------- AUTH LOADING STATE ---------------- */
+  if (authLoading) {
+    return (
+      <Layout showNav={false}>
+        <div className="min-h-screen flex flex-1 items-center justify-center">
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      </Layout>
+    )
   }
 
-  return (
+  /* ---------------- RENDER ---------------- */
+  return user ? (
     <Layout showNav={false}>
-      <div className="flex h-[100vh] bg-gray-50 overflow-hidden">
-      {/* Desktop Sidebar */}
-      <div className="hidden md:block w-1/4 border-r bg-white overflow-hidden">
-        <ChatSidebar
+      <div className="flex flex-1 bg-gray-50 overflow-hidden">
+        <div className="hidden md:block w-1/4 border-r bg-white">
+          <ChatSidebar
+            chats={chats}
+            activeChatId={activeChatId}
+            onNewChat={createNewChat}
+            onSelectChat={selectChat}
+            onDeleteChat={deleteChat}
+            isGuest={isGuest}
+          />
+        </div>
+
+        <div className="flex-1 flex flex-col">
+          <ChatHeader
+            isGuest={isGuest}
+            questionsRemaining={questionsRemaining}
+            onDismissBanner={() => {}}
+          />
+
+          <div className="flex-1 overflow-y-auto">
+            {messages.length === 0 ? (
+              <WelcomeState onQuestionClick={sendMessage} />
+            ) : (
+              <ChatMessages messages={messages} isTyping={isTyping} />
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <ChatInput
+            onSend={sendMessage}
+            disabled={isGuest && questionsRemaining <= 0}
+            isGuest={isGuest}
+          />
+        </div>
+
+        {showGuestOverlay && (
+          <GuestOverlay
+            onClose={() => setShowGuestOverlay(false)}
+            onSignIn={() => setShowGuestOverlay(false)}
+          />
+        )}
+
+        <MobileChatHistory
+          isOpen={showHistorySheet}
+          onClose={() => setShowHistorySheet(false)}
           chats={chats}
           activeChatId={activeChatId}
           onNewChat={createNewChat}
           onSelectChat={selectChat}
           onDeleteChat={deleteChat}
-          isGuest={isGuest}
         />
       </div>
-
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        <ChatHeader
-          isGuest={isGuest}
-          questionsRemaining={questionsRemaining}
-          onDismissBanner={() => {}}
-        />
-
-        <div className="flex-1 flex flex-col">
-          {messages.length === 0 ? (
-            <WelcomeState onQuestionClick={handleSuggestedQuestion} />
-          ) : (
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              <div className="max-w-4xl mx-auto w-full px-4 md:px-6 py-6 pb-4">
-                <ChatMessages
-                  messages={messages}
-                  isTyping={isTyping}
-                />
-                <div ref={messagesEndRef} />
-              </div>
-            </div>
-          )}
-
-          <div className="bg-white border-t z-30">
-            <ChatInput
-              onSend={sendMessage}
-              disabled={isGuest && questionsRemaining <= 0}
-              isGuest={isGuest}
-            />
-          </div>
+    </Layout>
+  ) : (
+    <Layout showNav={false}>
+      <div className="flex flex-1 h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Please sign in to continue</h2>
+          <button
+            onClick={() => window.location.href = '/auth/login'}
+            className="bg-navy text-white px-6 py-3 rounded-lg"
+          >
+            Sign In
+          </button>
         </div>
-      </div>
-
-      {/* Guest Overlay */}
-      {showGuestOverlay && (
-        <GuestOverlay
-          onClose={() => setShowGuestOverlay(false)}
-          onSignIn={() => {
-            setIsGuest(false)
-            setShowGuestOverlay(false)
-          }}
-        />
-      )}
-
-      {/* Mobile Chat History Sheet */}
-      <MobileChatHistory
-        isOpen={showHistorySheet}
-        onClose={() => setShowHistorySheet(false)}
-        chats={chats}
-        activeChatId={activeChatId}
-        onNewChat={createNewChat}
-        onSelectChat={selectChat}
-        onDeleteChat={deleteChat}
-      />
-
-      {/* Mobile FAB and History Button */}
-      <div className="md:hidden fixed bottom-24 right-4 flex flex-col gap-2 z-40">
-        <button
-          onClick={() => setShowHistorySheet(true)}
-          className="bg-navy text-white p-3 rounded-full shadow-lg hover:bg-navy/90 transition-colors"
-          aria-label="Chat History"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-        </button>
-        <button
-          onClick={createNewChat}
-          className="bg-green text-white p-4 rounded-full shadow-lg hover:bg-green/90 transition-colors"
-          aria-label="New Chat"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
-      </div>
       </div>
     </Layout>
   )
 }
-

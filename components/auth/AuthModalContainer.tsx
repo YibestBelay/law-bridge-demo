@@ -5,7 +5,7 @@ import AuthModal from './AuthModal'
 import type { AuthModalMode } from '@/lib/authModalEvents'
 
 export default function AuthModalContainer() {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true) // Set to true to show by default
   const [mode, setMode] = useState<AuthModalMode>('signin')
 
   useEffect(() => {

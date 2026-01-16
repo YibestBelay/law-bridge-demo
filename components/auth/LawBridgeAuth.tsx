@@ -151,16 +151,38 @@ export default function LawBridgeAuth({
         }
       } else {
         // Sign up
+        // Ensure all fields are filled
+        if (!formData.fullName || !formData.email || !formData.phone || !formData.password) {
+          setError("Please fill in all required fields");
+          setLoading(false);
+          return;
+        }
+
+        if (!userRole) {
+          setError("Please select a role (User or Lawyer)");
+          setLoading(false);
+          return;
+        }
+
+        console.log("Signing up with:", {
+          email: formData.email,
+          fullName: formData.fullName,
+          phone: formData.phone,
+          role: userRole,
+          hasPassword: !!formData.password
+        });
+
         const result = await signUp(
-          formData.email,
+          formData.email.trim(),
           formData.password,
-          formData.fullName,
-          formData.phone,
+          formData.fullName.trim(),
+          formData.phone.trim(),
           userRole
         );
 
         if (result.error) {
           setError(result.error);
+          console.error("Signup error:", result.error);
         } else {
           setSuccess(
             "Account created successfully! Please check your email inbox (and spam folder) for a verification link. You must verify your email before you can sign in."

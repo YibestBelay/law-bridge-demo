@@ -136,22 +136,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     role: "user" | "lawyer"
   ) => {
     try {
+      // Validate inputs before sending
+      if (!email || !password || !fullName || !phone || !role) {
+        return { error: "All fields are required" };
+      }
+
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, fullName, phone, role }),
+        body: JSON.stringify({ 
+          email: email.trim(), 
+          password, 
+          fullName: fullName.trim(), 
+          phone: phone.trim(), 
+          role: role.trim() 
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        return { error: data.error || "Failed to sign up" };
+        console.error("Signup API error:", {
+          status: response.status,
+          error: data.error,
+          data: data
+        });
+        return { error: data.error || `Failed to sign up (${response.status})` };
       }
 
       return {};
-    } catch (error) {
+    } catch (error: any) {
       console.error("Sign up error:", error);
-      return { error: "An unexpected error occurred" };
+      return { error: error.message || "An unexpected error occurred" };
     }
   };
 

@@ -69,7 +69,7 @@ export async function GET(
       photo: lawyer.photo_url || "👨‍💼",
       title: lawyer.title || "Attorney",
       rating: Number(lawyer.rating) || 0,
-      reviews: lawyer.reviews_count || 0,
+      reviewCount: lawyer.reviews_count || 0,
       location: lawyer.location || "Unknown",
       memberSince: new Date(profile?.created_at || lawyer.created_at).toLocaleDateString(
         "en-US",
@@ -92,8 +92,8 @@ export async function GET(
       education: Array.isArray(lawyer.education)
         ? lawyer.education
         : lawyer.education
-        ? [lawyer.education]
-        : [],
+          ? [lawyer.education]
+          : [],
       licenseNumber: lawyer.license_number || "",
       languages: (lawyer.languages || []).map((lang: string) => ({
         name: lang,

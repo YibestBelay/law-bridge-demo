@@ -45,8 +45,9 @@ const mockRequests = [
     caseType: 'Family Law',
     summary: 'Need assistance with divorce proceedings and child custody arrangements. Looking for experienced family law attorney.',
     budget: 5000,
-    urgency: 'urgent',
-    posted: '2 hours ago'
+    urgency: 'urgent' as const,
+    posted: '2 hours ago',
+    status: 'pending'
   },
   {
     id: '2',
@@ -55,8 +56,9 @@ const mockRequests = [
     caseType: 'Property',
     summary: 'Property dispute with neighbor regarding boundary lines. Need legal consultation and representation.',
     budget: 3500,
-    urgency: 'normal',
-    posted: '5 hours ago'
+    urgency: 'normal' as const,
+    posted: '5 hours ago',
+    status: 'pending'
   },
   {
     id: '3',
@@ -65,8 +67,9 @@ const mockRequests = [
     caseType: 'Contract',
     summary: 'Review of employment contract and negotiation of terms. Confidential matter.',
     budget: 2000,
-    urgency: 'flexible',
-    posted: '1 day ago'
+    urgency: 'flexible' as const,
+    posted: '1 day ago',
+    status: 'pending'
   }
 ]
 
@@ -132,35 +135,35 @@ const mockMessages = [
 const mockNotifications = [
   {
     id: '1',
-    type: 'request',
+    type: 'request' as const,
     message: 'New request from Sarah M.',
     timestamp: '2 hours ago',
     unread: true
   },
   {
     id: '2',
-    type: 'message',
+    type: 'message' as const,
     message: 'Message from John D.',
     timestamp: '3 hours ago',
     unread: true
   },
   {
     id: '3',
-    type: 'payment',
+    type: 'payment' as const,
     message: 'Payment received: 2,500 ETB',
     timestamp: '5 hours ago',
     unread: false
   },
   {
     id: '4',
-    type: 'review',
+    type: 'review' as const,
     message: 'New 5-star review from Mary A.',
     timestamp: '1 day ago',
     unread: false
   },
   {
     id: '5',
-    type: 'reminder',
+    type: 'reminder' as const,
     message: 'Reminder: Court tomorrow at 9 AM',
     timestamp: '1 day ago',
     unread: false
@@ -176,49 +179,49 @@ export default function LawyerDashboardPage() {
       <div className="flex h-screen bg-gray-50 overflow-hidden">
         {/* Left Sidebar */}
         <LawyerSidebar
-        lawyer={mockLawyer}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-      />
-
-      {/* Main Dashboard */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <DashboardHeader
           lawyer={mockLawyer}
-          available={available}
-          onAvailableChange={setAvailable}
-          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
         />
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-20 lg:pb-6">
-          <div className="max-w-7xl mx-auto">
-            {/* Performance Metrics */}
-            <PerformanceMetrics metrics={mockMetrics} />
+        {/* Main Dashboard */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <DashboardHeader
+            lawyer={mockLawyer}
+            available={available}
+            onAvailableChange={setAvailable}
+            onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          />
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-              {/* Left Column - 2/3 width */}
-              <div className="lg:col-span-2 space-y-6">
-                <ConsultationRequests requests={mockRequests} />
-                <ActiveCasesTable cases={mockCases} />
-                <EarningsOverview />
-                <RecentMessages messages={mockMessages} />
-              </div>
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-20 lg:pb-6">
+            <div className="max-w-7xl mx-auto">
+              {/* Performance Metrics */}
+              <PerformanceMetrics metrics={mockMetrics} />
 
-              {/* Right Column - 1/3 width */}
-              <div className="space-y-6">
-                <CalendarWidget />
-                <PerformanceInsights />
+              {/* Main Content Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                {/* Left Column - 2/3 width */}
+                <div className="lg:col-span-2 space-y-6">
+                  <ConsultationRequests requests={mockRequests} />
+                  <ActiveCasesTable cases={mockCases} />
+                  <EarningsOverview />
+                  <RecentMessages messages={mockMessages} />
+                </div>
+
+                {/* Right Column - 1/3 width */}
+                <div className="space-y-6">
+                  <CalendarWidget />
+                  <PerformanceInsights />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Right Notifications Panel - Desktop Only */}
-      <div className="hidden xl:block w-80 border-l border-gray-200 bg-white overflow-y-auto">
-        <NotificationsPanel notifications={mockNotifications} />
-      </div>
+        {/* Right Notifications Panel - Desktop Only */}
+        <div className="hidden xl:block w-80 border-l border-gray-200 bg-white overflow-y-auto">
+          <NotificationsPanel notifications={mockNotifications} />
+        </div>
 
         {/* Mobile Navigation */}
         <MobileNav />

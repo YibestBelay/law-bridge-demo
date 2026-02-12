@@ -12,6 +12,7 @@ interface Request {
   budget: number
   urgency: 'urgent' | 'normal' | 'flexible'
   posted: string
+  status: string
 }
 
 interface ConsultationRequestsProps {

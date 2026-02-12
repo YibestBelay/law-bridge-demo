@@ -141,13 +141,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Profile is automatically created by trigger, but we should update it with the correct data
-    // Check if profile exists (created by trigger)
-    const { data: existingProfile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("id", authData.user.id)
-      .single();
-
     // Wait a moment for trigger to create profile
     await new Promise(resolve => setTimeout(resolve, 500));
 

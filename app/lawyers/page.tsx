@@ -12,9 +12,6 @@ import Pagination from '@/components/lawyers/Pagination'
 import EmptyState from '@/components/lawyers/EmptyState'
 import LoadingState from '@/components/lawyers/LoadingState'
 import MobileFiltersSheet from '@/components/lawyers/MobileFiltersSheet'
-import { createClient } from '@/lib/supabase/client'
-const supabase = createClient()
-import { User } from '@supabase/supabase-js'
 
 export interface Lawyer {
   id: string
@@ -63,10 +60,6 @@ const specializations = [
 ]
 
 export default function LawyersPage() {
-  /* ---------------- AUTH STATE ---------------- */
-  const [user, setUser] = useState<User | null>(null)
-  const [authLoading, setAuthLoading] = useState(true)
-
   /* ---------------- PAGE STATE ---------------- */
   const [lawyers] = useState<Lawyer[]>(mockLawyers)
   const [loading, setLoading] = useState(false)
@@ -86,24 +79,6 @@ export default function LawyersPage() {
     experience: [],
     badges: []
   })
-
-  /* ---------------- RESTORE SESSION ---------------- */
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
-      setAuthLoading(false)
-    })
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null)
-      }
-    )
-
-    return () => {
-      listener.subscription.unsubscribe()
-    }
-  }, [])
 
   /* ---------------- FILTER LOGIC ---------------- */
   const filteredLawyers = useMemo(() => {
@@ -181,38 +156,6 @@ export default function LawyersPage() {
       badges: []
     })
     setCurrentPage(1)
-  }
-
-  /* ---------------- AUTH LOADING ---------------- */
-  
-  if (authLoading) {
-    return (
-      
-      <Layout>
-        <div className="flex min-h-screen items-center justify-center">
-          <p className="text-gray-500">Loading...</p>
-        </div>
-      </Layout>
-    )
-  }
-
-  /* ---------------- UNAUTHENTICATED ---------------- */
-  if (!user) {
-    return (
-      <Layout>
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">Please sign in to continue</h2>
-            <button
-              onClick={() => (window.location.href = '/auth/login')}
-              className="bg-navy text-white px-6 py-3 rounded-lg"
-            >
-              Sign In
-            </button>
-          </div>
-        </div>
-      </Layout>
-    )
   }
 
   /* ---------------- PAGE ---------------- */

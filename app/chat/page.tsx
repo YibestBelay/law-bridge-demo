@@ -2,17 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Layout from '../../components/shared/Layout'
-import { openAuthModal } from '@/lib/authModalEvents'
 import ChatSidebar from '@/components/chat/ChatSidebar'
 import ChatHeader from '@/components/chat/ChatHeader'
 import WelcomeState from '@/components/chat/WelcomeState'
 import ChatMessages from '@/components/chat/ChatMessages'
 import ChatInput from '@/components/chat/ChatInput'
-import GuestOverlay from '@/components/chat/GuestOverlay'
 import MobileChatHistory from '@/components/chat/MobileChatHistory'
-import { createClient } from '@/lib/supabase/client'
-const supabase = createClient()
-import { User } from '@supabase/supabase-js'
 
 interface Message {
   id: string
@@ -30,40 +25,19 @@ interface Chat {
 }
 
 export default function ChatPage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [authLoading, setAuthLoading] = useState(true)
-
   const [chats, setChats] = useState<Chat[]>([])
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
-  const [isGuest, setIsGuest] = useState(true)
-  const [questionsRemaining, setQuestionsRemaining] = useState(2)
+
+  // Disable guest mode since auth is removed
+  const isGuest = false
+  const [questionsRemaining, setQuestionsRemaining] = useState(999)
   const [showGuestOverlay, setShowGuestOverlay] = useState(false)
   const [showHistorySheet, setShowHistorySheet] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const activeChat = chats.find(chat => chat.id === activeChatId)
-
-  /* ---------------- AUTH SESSION RESTORE ---------------- */
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
-      setIsGuest(!data.user)
-      setAuthLoading(false)
-    })
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null)
-        setIsGuest(!session?.user)
-      }
-    )
-
-    return () => {
-      listener.subscription.unsubscribe()
-    }
-  }, [])
 
   /* ---------------- LOAD CHAT HISTORY ---------------- */
   useEffect(() => {
@@ -126,26 +100,6 @@ export default function ChatPage() {
   }
 
   const sendMessage = async (content: string) => {
-    if (isGuest && messages.length === 0) {
-      openAuthModal('signin')
-      setShowGuestOverlay(true)
-      return
-    }
-
-    if (isGuest && questionsRemaining <= 0) {
-      setShowGuestOverlay(true)
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          role: 'system',
-          content: "You've reached your question limit. Please sign in to continue",
-          timestamp: new Date(),
-        },
-      ])
-      return
-    }
-
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -160,11 +114,11 @@ export default function ChatPage() {
       setChats(chats.map(chat =>
         chat.id === activeChatId
           ? {
-              ...chat,
-              messages: [...chat.messages, userMessage],
-              title: chat.messages.length === 0 ? content.slice(0, 50) : chat.title,
-              updatedAt: new Date(),
-            }
+            ...chat,
+            messages: [...chat.messages, userMessage],
+            title: chat.messages.length === 0 ? content.slice(0, 50) : chat.title,
+            updatedAt: new Date(),
+          }
           : chat
       ))
     } else {
@@ -195,19 +149,9 @@ export default function ChatPage() {
     }, 1500)
   }
 
-  /* ---------------- AUTH LOADING STATE ---------------- */
-  if (authLoading) {
-    return (
-      <Layout showNav={false}>
-        <div className="min-h-screen flex flex-1 items-center justify-center">
-          <p className="text-gray-500">Loading...</p>
-        </div>
-      </Layout>
-    )
-  }
 
   /* ---------------- RENDER ---------------- */
-  return user ? (
+  return (
     <Layout showNav={false}>
       <div className="flex flex-1 bg-gray-50 overflow-hidden">
         <div className="hidden md:block w-1/4 border-r bg-white">
@@ -225,7 +169,7 @@ export default function ChatPage() {
           <ChatHeader
             isGuest={isGuest}
             questionsRemaining={questionsRemaining}
-            onDismissBanner={() => {}}
+            onDismissBanner={() => { }}
           />
 
           <div className="flex-1 overflow-y-auto">
@@ -244,12 +188,6 @@ export default function ChatPage() {
           />
         </div>
 
-        {showGuestOverlay && (
-          <GuestOverlay
-            onClose={() => setShowGuestOverlay(false)}
-            onSignIn={() => setShowGuestOverlay(false)}
-          />
-        )}
 
         <MobileChatHistory
           isOpen={showHistorySheet}
@@ -260,20 +198,6 @@ export default function ChatPage() {
           onSelectChat={selectChat}
           onDeleteChat={deleteChat}
         />
-      </div>
-    </Layout>
-  ) : (
-    <Layout showNav={false}>
-      <div className="flex flex-1 h-screen items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Please sign in to continue</h2>
-          <button
-            onClick={() => window.location.href = '/auth/login'}
-            className="bg-navy text-white px-6 py-3 rounded-lg"
-          >
-            Sign In
-          </button>
-        </div>
       </div>
     </Layout>
   )

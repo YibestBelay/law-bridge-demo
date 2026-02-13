@@ -1,7 +1,6 @@
 'use client'
 
 import Navigation from './Navigation'
-import AuthModalContainer from '../auth/AuthModalContainer'
 
 interface LayoutProps {
   children: React.ReactNode

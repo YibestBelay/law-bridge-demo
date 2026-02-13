@@ -1,7 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { MessageCircle, Search } from 'lucide-react'
-import { openAuthModal } from '@/lib/authModalEvents'
+// import { openAuthModal } from '@/lib/authModalEvents'
 
 export default function Hero() {
   return (
@@ -10,7 +11,7 @@ export default function Hero() {
         <div className="absolute top-20 left-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-white rounded-full blur-3xl"></div>
       </div>
-      
+
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="text-center lg:text-left">
@@ -20,22 +21,22 @@ export default function Hero() {
             <p className="text-xl md:text-2xl text-blue-100 mb-8">
               Free AI legal guidance + Connect with verified Ethiopian lawyers
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12">
-              <button
-                onClick={() => openAuthModal('signin')}
+              <Link
+                href="/chat"
                 className="bg-green hover:bg-green/90 text-white px-8 py-4 rounded-lg text-lg font-semibold flex items-center justify-center gap-2 shadow-lg transition-all"
               >
                 <MessageCircle size={24} />
                 Try AI Assistant Free
-              </button>
-              <button
-                onClick={() => openAuthModal('signup')}
+              </Link>
+              <Link
+                href="/lawyers"
                 className="bg-gold hover:bg-gold/90 text-navy px-8 py-4 rounded-lg text-lg font-semibold flex items-center justify-center gap-2 shadow-lg transition-all"
               >
                 <Search size={24} />
                 Find a Lawyer
-              </button>
+              </Link>
             </div>
 
             {/* Trust Badges */}
@@ -73,4 +74,3 @@ export default function Hero() {
     </section>
   )
 }
-
